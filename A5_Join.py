@@ -18,11 +18,11 @@ client = gspread.authorize(creds)
 
 # === IDs das planilhas ===
 planilhas_ids = {
-    "Financeiro_contas_a_receber_Bluefields": "1IkG2bG2qwfUPIRwE-igQ-gbsH5B3vmlH_ButiOoorAM",
-    "Financeiro_contas_a_pagar_Bluefields": "1As4IarqpWofUxl6g4X0TRuBMIgP-uJEFkWDIqqFcZBY",
-    "Detalhe_centro_pagamento": "10Go9m1OmjuJyv7GMnAS0mTt8SiwVMnzEQxpMqWAi9oI",
-    "Detalhe_centro_recebimento": "1I-wwL4psrN45_AncTxDydgm9ZkmTjtHXvEem6dXck2U",
-    "Financeiro_Completo_Bluefields": "1sBKeD9Bgwy59xAJzetF1gVDShrnCocQnuYB2CRtutPk"
+    "Financeiro_contas_a_receber_Arch": "1cB0R7ovU0SGRZTaa-KSQ-fMc91oFOT-cwiSGirCrFmE",
+    "Financeiro_contas_a_pagar_Arch": "1FXBBcVdKwwerZVSGeRSNihfJoReftj41tvIkDQ1erlg",
+    "Detalhe_centro_pagamento": "1SiRuvVoKTfCcjuaJR1NxXORKBQNiqJ8F9CkPCXEsco8",
+    "Detalhe_centro_recebimento": "15IFeo6UBC4C04uxRUJsXx0wpBVXz-sRpy0C-PVn3fkY",
+    "Financeiro_Completo_Arch": "1yLOSAt74Rb5deiDwtvlvK0o-IQsRkSiV-E5kd4k8F-8"
 }
 
 # === Função para abrir e ler planilha por ID ===
@@ -33,8 +33,8 @@ def ler_planilha_por_id(nome_arquivo):
     return df
 
 # Lê os dados das planilhas
-df_receber = ler_planilha_por_id("Financeiro_contas_a_receber_Bluefields")
-df_pagar = ler_planilha_por_id("Financeiro_contas_a_pagar_Bluefields")
+df_receber = ler_planilha_por_id("Financeiro_contas_a_receber_Arch")
+df_pagar = ler_planilha_por_id("Financeiro_contas_a_pagar_Arch")
 df_pagamento = ler_planilha_por_id("Detalhe_centro_pagamento")
 df_recebimento = ler_planilha_por_id("Detalhe_centro_recebimento")
 
@@ -83,7 +83,7 @@ if 'categoriesRatio.value' in df_merge.columns and 'paid' in df_merge.columns:
     )
 
 # 📄 Abrir a planilha de saída
-planilha_saida = client.open_by_key(planilhas_ids["Financeiro_Completo_Bluefields"])
+planilha_saida = client.open_by_key(planilhas_ids["Financeiro_Completo_Arch"])
 aba_saida = planilha_saida.sheet1
 
 # Limpa a aba e sobrescreve
