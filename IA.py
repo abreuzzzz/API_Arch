@@ -12,10 +12,10 @@ from google.oauth2.service_account import Credentials
 client = OpenAI(api_key="sk-0ac91b811ec149b48546f44fcf1ba9b5", base_url="https://api.deepseek.com")
 
 # URL da planilha Google Sheets exportada como CSV
-sheet_id = "1sBKeD9Bgwy59xAJzetF1gVDShrnCocQnuYB2CRtutPk"
+sheet_id = "1yLOSAt74Rb5deiDwtvlvK0o-IQsRkSiV-E5kd4k8F-8"
 sheet_csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
 
-SHEET_ID2 = "1L6eJ5ux2OkdUTB8CCYUkKGxn76oVx92zqDRLcf-2wCM"  # ID da planilha de destino
+SHEET_ID2 = "1VF33W3FTnLCs2cWLKftZVgLFa6KJycQpflKC0Q8ccnU"  # ID da planilha de destino
 
 # Ler a planilha
 df = pd.read_csv(sheet_csv_url)
@@ -186,7 +186,7 @@ creds = Credentials.from_service_account_info(creds_dict, scopes=["https://www.g
 
 # Acessar a planilha
 gc = gspread.authorize(creds)
-spreadsheet = gc.open_by_key("1L6eJ5ux2OkdUTB8CCYUkKGxn76oVx92zqDRLcf-2wCM")
+spreadsheet = gc.open_by_key("1VF33W3FTnLCs2cWLKftZVgLFa6KJycQpflKC0Q8ccnU")
 worksheet = spreadsheet.get_worksheet(0)  # primeira aba
 
 # Limpar todo o conteúdo anterior
