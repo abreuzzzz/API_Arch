@@ -2,6 +2,7 @@ import os
 import json
 import pandas as pd
 import requests
+from datetime import datetime, timedelta
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
@@ -37,26 +38,77 @@ colunas_base = [
     "financialEvent.negotiator.name"
 ]
 
-# ===================== Coleta paginada da API =====================
-page = 1
-page_size = 1000
+# ===================== Função para gerar períodos de 15 dias =====================
+def gerar_periodos(data_inicio, data_fim):
+    """Gera lista de períodos de 15 dias entre data_inicio e data_fim"""
+    periodos = []
+    current_date = data_inicio
+    
+    while current_date <= data_fim:
+        periodo_fim = min(current_date + timedelta(days=14), data_fim)
+        periodos.append({
+            'dueDateFrom': current_date.strftime('%Y-%m-%d'),
+            'dueDateTo': periodo_fim.strftime('%Y-%m-%d')
+        })
+        current_date = periodo_fim + timedelta(days=1)
+    
+    return periodos
+
+# ===================== Função para coletar dados de um período =====================
+def coletar_dados_periodo(periodo, max_pages=20):
+    """Coleta dados paginados para um período específico"""
+    page = 1
+    page_size = 100
+    items_periodo = []
+    
+    while page <= max_pages:
+        url = f"https://services.contaazul.com/finance-pro-reader/v1/installment-view?page={page}&page_size={page_size}"
+        payload = json.dumps({
+            "dueDateFrom": periodo['dueDateFrom'],
+            "dueDateTo": periodo['dueDateTo'],
+            "quickFilter": "ALL",
+            "search": "",
+            "type": "REVENUE"
+        })
+        
+        try:
+            response = requests.post(url, headers=headers, data=payload)
+            response.raise_for_status()
+            data = response.json()
+            items = data.get("items", [])
+            
+            if not items:
+                break
+            
+            items_periodo.extend(items)
+            page += 1
+            
+            print(f"  📄 Página {page-1}: {len(items)} registros coletados ({periodo['dueDateFrom']} a {periodo['dueDateTo']})")
+            
+        except requests.exceptions.RequestException as e:
+            print(f"  ⚠️ Erro na página {page} do período {periodo['dueDateFrom']} a {periodo['dueDateTo']}: {e}")
+            break
+    
+    return items_periodo
+
+# ===================== Coleta paginada da API por períodos =====================
+data_inicio = datetime(2015, 1, 1)
+data_fim = datetime(2030, 12, 31)
+
+print(f"🔄 Gerando períodos de 15 dias entre {data_inicio.date()} e {data_fim.date()}...")
+periodos = gerar_periodos(data_inicio, data_fim)
+print(f"📊 Total de períodos a processar: {len(periodos)}")
+
 all_items = []
+total_periodos = len(periodos)
 
-while True:
-    url = f"https://services.contaazul.com/finance-pro-reader/v1/installment-view?page={page}&page_size={page_size}"
-    payload = json.dumps({
-        "quickFilter": "ALL",
-        "search": "",
-        "type": "REVENUE"
-    })
+for idx, periodo in enumerate(periodos, 1):
+    print(f"\n🔍 Processando período {idx}/{total_periodos}: {periodo['dueDateFrom']} a {periodo['dueDateTo']}")
+    items_periodo = coletar_dados_periodo(periodo)
+    all_items.extend(items_periodo)
+    print(f"  ✅ Total acumulado: {len(all_items)} registros")
 
-    response = requests.post(url, headers=headers, data=payload)
-    data = response.json()
-    items = data.get("items", [])
-    if not items:
-        break
-    all_items.extend(items)
-    page += 1
+print(f"\n✅ Coleta finalizada! Total de registros: {len(all_items)}")
 
 # ===================== Normalização dos dados =====================
 def extract_fields(item, campos):
@@ -72,6 +124,10 @@ def extract_fields(item, campos):
 dados_formatados = [extract_fields(item, colunas_base) for item in all_items]
 df = pd.DataFrame(dados_formatados)
 
+# Remover duplicatas baseadas no ID
+df = df.drop_duplicates(subset=['id'], keep='first')
+print(f"📋 Total de registros únicos após remoção de duplicatas: {len(df)}")
+
 # ===================== Buscar ID da planilha no Google Drive =====================
 folder_id = "12YToNeQ6uE25gJH_6GQygorsXZSWgEwy"
 sheet_name = "Financeiro_contas_a_receber_Arch"
@@ -86,12 +142,14 @@ if not files:
 spreadsheet_id = files[0]['id']
 
 # ===================== Limpar conteúdo anterior da planilha =====================
+print(f"\n🧹 Limpando planilha '{sheet_name}'...")
 sheets_service.spreadsheets().values().clear(
     spreadsheetId=spreadsheet_id,
     range="A:Z"
 ).execute()
 
 # ===================== Atualizar dados na planilha =====================
+print(f"📤 Atualizando planilha com {len(df)} registros...")
 values = [df.columns.tolist()] + df.fillna("").values.tolist()
 sheets_service.spreadsheets().values().update(
     spreadsheetId=spreadsheet_id,
@@ -100,4 +158,5 @@ sheets_service.spreadsheets().values().update(
     body={"values": values}
 ).execute()
 
-print("✅ Planilha Google atualizada com sucesso.")
+print(f"\n✅ Planilha Google '{sheet_name}' atualizada com sucesso!")
+print(f"📊 Total de registros: {len(df)}")
