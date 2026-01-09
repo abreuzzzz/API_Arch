@@ -24,7 +24,7 @@ headers = {
 }
 
 # Lista de status para processar
-status_list = ["ACQUITTED", "PARTIAL", "PENDING", "LOST", "RENEGOTIATED", "CONCILIATED"]
+status_list = ["ACQUITTED", "PARTIAL", "PENDING", "LOST", "RENEGOTIATED", "CONCILIATED", "OVERDUE"]
 
 # ===================== Baixar e consolidar arquivos XLSX =====================
 print("🔄 Iniciando download dos arquivos XLSX para cada status...")
@@ -85,10 +85,8 @@ print(f"  ✅ {total_conciliated} registros CONCILIATED convertidos para ACQUITT
 print(f"\n🔄 Criando coluna 'Data do último pagamento' baseada em Situação e Data movimento...")
 
 if 'Situação' in df_consolidado.columns and 'Data movimento' in df_consolidado.columns:
-    # Criar a nova coluna
     df_consolidado['Data do último pagamento'] = None
     
-    # Aplicar a regra: se Situação é "Quitado" ou "Conciliado", usar "Data movimento"
     mask = df_consolidado['Situação'].isin(['Quitado', 'Conciliado'])
     df_consolidado.loc[mask, 'Data do último pagamento'] = df_consolidado.loc[mask, 'Data movimento']
     
@@ -146,6 +144,13 @@ for col_antiga, col_nova in colunas_renomear.items():
 
 df_consolidado.rename(columns=colunas_renomeadas, inplace=True)
 
+# ===================== Converter todos os valores para string =====================
+print(f"\n🔄 Convertendo todos os valores para string para evitar auto-formatação...")
+
+for col in df_consolidado.columns:
+    df_consolidado[col] = df_consolidado[col].astype(str)
+    print(f"  ✅ Coluna '{col}' convertida para string")
+
 # ===================== Buscar ID da planilha no Google Drive =====================
 folder_id = "12YToNeQ6uE25gJH_6GQygorsXZSWgEwy"
 sheet_name = "Financeiro_contas_a_receber_Arch"
@@ -166,13 +171,13 @@ sheets_service.spreadsheets().values().clear(
     range="A:BA"
 ).execute()
 
-# ===================== Atualizar dados na planilha =====================
+# ===================== Atualizar dados na planilha com RAW =====================
 print(f"📤 Atualizando planilha com {len(df_consolidado)} registros...")
 values = [df_consolidado.columns.tolist()] + df_consolidado.fillna("").values.tolist()
 sheets_service.spreadsheets().values().update(
     spreadsheetId=spreadsheet_id,
     range="A1",
-    valueInputOption="USER_ENTERED",
+    valueInputOption="RAW",  # ⬅️ MUDANÇA AQUI: Evita interpretação automática
     body={"values": values}
 ).execute()
 
